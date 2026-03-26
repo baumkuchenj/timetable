@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>駅案内表示</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="screen">
+        <section>
+            <h1 id="stationName" class="meta-value">--駅</h1>
+            <p class="meta-label">現在時刻</p>
+        </section>
+
+        <section class="clock-wrap" aria-label="現在時刻">
+            <p id="currentTime" class="clock">--:--</p>
+        </section>
+
+        <section class="next-block" aria-label="次発案内">
+            <p class="next-label">次発</p>
+            <p id="nextTrainText" class="next-line hidden"></p>
+            <p id="loadingText" class="next-line muted">読み込み中...</p>
+            <p id="errorText" class="status hidden">時刻表の読み込みに失敗しました</p>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
