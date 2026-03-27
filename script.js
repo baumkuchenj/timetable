@@ -6,8 +6,8 @@ const REFRESH_INTERVAL_MS = 60 * 1000;
 const SERVICE_DAY_BORDER_HOUR = 3;
 const FIRST_TRAIN_NOTICE_MINUTES = 60;
 const DIRECTION_LABELS = {
-    up: "のぼり",
-    down: "くだり",
+    up: "のぼり：",
+    down: "くだり：",
 };
 
 function updateCurrentTime() {
@@ -113,8 +113,15 @@ function isJapaneseHoliday(date) {
 }
 
 function getDayType(date) {
-    const day = date.getDay();
-    return day === 0 || day === 6 || isJapaneseHoliday(date) ? "weekend_holiday" : "weekday";
+    if (isJapaneseHoliday(date) || date.getDay() === 0) {
+        return "holiday";
+    }
+
+    if (date.getDay() === 6) {
+        return "saturday";
+    }
+
+    return "weekday";
 }
 
 function getServiceDate(now) {
@@ -122,11 +129,20 @@ function getServiceDate(now) {
 }
 
 function getMinutesUntil(date) {
-    return Math.floor((date.getTime() - Date.now()) / 60000);
+    const diffMs = date.getTime() - Date.now();
+    if (diffMs <= 0) {
+        return 0;
+    }
+
+    return Math.ceil(diffMs / 60000);
 }
 
 function formatMinutesUntil(minutesUntil) {
     return `${Math.max(0, minutesUntil)}分後`;
+}
+
+function formatDepartureTime(date) {
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}発`;
 }
 
 function buildTrainInstances(rawTimetable, serviceDate) {
@@ -167,6 +183,7 @@ function getDirectionState(todayTimetable, nextDayTimetable, serviceDate, nextSe
         return {
             kind: isLastTrain ? "last" : "normal",
             destination: nextTrain.destination,
+            departure: nextTrain.departure,
             minutesUntil: getMinutesUntil(nextTrain.departure),
         };
     }
@@ -181,6 +198,7 @@ function getDirectionState(todayTimetable, nextDayTimetable, serviceDate, nextSe
             return {
                 kind: "first",
                 destination: firstTrain.destination,
+                departure: firstTrain.departure,
                 minutesUntil: minutesUntilFirst,
             };
         }
@@ -189,6 +207,7 @@ function getDirectionState(todayTimetable, nextDayTimetable, serviceDate, nextSe
     return {
         kind: "none",
         destination: "",
+        departure: null,
         minutesUntil: null,
     };
 }
@@ -204,11 +223,11 @@ function escapeHtml(text) {
 
 function formatDirectionText(label, state) {
     if (state.kind === "none") {
-        return `<span class="direction">${label}</span>:本日は電車ありません`;
+        return `<div class="direction-row"><span class="direction">${label}</span><span class="departure-time">--:--発</span><span class="destination">本日は電車ありません</span><span class="minutes"></span></div>`;
     }
 
     const suffix = state.kind === "last" ? "（終電）" : state.kind === "first" ? "（始発）" : "";
-    return `<span class="direction">${label}</span>:${formatMinutesUntil(state.minutesUntil)} ${escapeHtml(state.destination)}行き${suffix}`;
+    return `<div class="direction-row"><span class="direction">${label}</span><span class="departure-time">${formatDepartureTime(state.departure)}</span><span class="destination">${escapeHtml(state.destination)}行き${suffix}</span><span class="minutes">（${formatMinutesUntil(state.minutesUntil)}）</span></div>`;
 }
 
 function renderNextTrainText() {
@@ -243,7 +262,7 @@ function renderNextTrainText() {
             nextServiceDate
         );
 
-        nextTrainText.innerHTML = `${formatDirectionText(DIRECTION_LABELS.up, upState)}<br>${formatDirectionText(DIRECTION_LABELS.down, downState)}`;
+        nextTrainText.innerHTML = `${formatDirectionText(DIRECTION_LABELS.up, upState)}${formatDirectionText(DIRECTION_LABELS.down, downState)}`;
     }
 
     loadingText.classList.add("hidden");
